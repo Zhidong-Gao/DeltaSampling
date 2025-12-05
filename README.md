@@ -4,7 +4,7 @@
 Official implementation for our paper:
 
 > **Delta Sampling: Data-Free Knowledge Transfer Across Diffusion Models**  
-> [[Paper (Coming Soon)]]()
+> [[Paper]](https://arxiv.org/abs/2512.03056)
 
 ---
 
