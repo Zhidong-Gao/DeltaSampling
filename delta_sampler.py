@@ -18,8 +18,8 @@ from comfy.samplers import Sampler, KSamplerX0Inpaint
 class DELTAKSAMPLER(Sampler):
     def __init__(self, sampler_function, extra_options={}, inpaint_options={}):
         self.sampler_function = sampler_function
-        self.extra_options = extra_options
-        self.inpaint_options = inpaint_options
+        self.extra_options = extra_options if extra_options is not None else {}
+        self.inpaint_options = inpaint_options if inpaint_options is not None else {}
 
     def sample(self, model_wrap, sigmas, extra_args, callback, noise, latent_image=None, denoise_mask=None, disable_pbar=False):
         extra_args["denoise_mask"] = denoise_mask
@@ -49,8 +49,16 @@ def delta_inner_sample(self, noise, latent_image, device, sampler, sigmas, denoi
     if latent_image is not None and torch.count_nonzero(latent_image) > 0: #Don't shift the empty latent image.
         latent_image = self.inner_model.process_latent_in(latent_image)
 
+    # Ensure conds is a dictionary
+    if not hasattr(self, 'conds') or self.conds is None:
+        self.conds = {}
+
     self.conds = process_conds(self.inner_model, noise, self.conds, device, latent_image, denoise_mask, seed)
 
+    # Ensure model_options is a dictionary
+    if not hasattr(self, 'model_options') or self.model_options is None:
+        self.model_options = {}
+    
     extra_args = {"model_options": comfy.model_patcher.create_model_options_clone(self.model_options), "seed": seed}
 
     executor = comfy.patcher_extension.WrapperExecutor.new_class_executor(
@@ -63,7 +71,15 @@ def delta_inner_sample(self, noise, latent_image, device, sampler, sigmas, denoi
     return sampler_function_input # self.inner_model.process_latent_out(samples.to(torch.float32))
 
 def delta_outer_sample(self, noise, latent_image, sampler, sigmas, denoise_mask=None, callback=None, disable_pbar=False, seed=None):
-    self.inner_model, self.conds, self.loaded_models = comfy.sampler_helpers.prepare_sampling(self.model_patcher, noise.shape, self.conds)
+    # Ensure conds is a dictionary before passing to prepare_sampling
+    if not hasattr(self, 'conds') or self.conds is None:
+        self.conds = {}
+    
+    # Ensure model_options is a dictionary
+    if not hasattr(self, 'model_options') or self.model_options is None:
+        self.model_options = {}
+    
+    self.inner_model, self.conds, self.loaded_models = comfy.sampler_helpers.prepare_sampling(self.model_patcher, noise.shape, self.conds, self.model_options)
     device = self.model_patcher.load_device
 
     if denoise_mask is not None:
@@ -90,6 +106,10 @@ def delta_cfg_sample(self, noise, latent_image, sampler, sigmas, denoise_mask=No
     if sigmas.shape[-1] == 0:
         return latent_image
 
+    # Initialize conds safely
+    if not hasattr(self, 'original_conds') or self.original_conds is None:
+        self.original_conds = {}
+    
     self.conds = {}
     for k in self.original_conds:
         self.conds[k] = list(map(lambda a: a.copy(), self.original_conds[k]))
@@ -97,6 +117,9 @@ def delta_cfg_sample(self, noise, latent_image, sampler, sigmas, denoise_mask=No
 
     try:
         orig_model_options = self.model_options
+        # Ensure model_options is never None
+        if self.model_options is None:
+            self.model_options = {}
         self.model_options = comfy.model_patcher.create_model_options_clone(self.model_options)
         # if one hook type (or just None), then don't bother caching weights for hooks (will never change after first step)
         orig_hook_mode = self.model_patcher.hook_mode
@@ -324,6 +347,14 @@ class LatentDeltaKSampler:
                                                                                             cfg, sampler_name, scheduler, 
                                                                                             target_positive, target_negative, 
                                                                                             latent_image, denoise)
+            
+            # Unpack sampler function inputs with better error handling
+            if source_sampler_function_input is None or not isinstance(source_sampler_function_input, tuple):
+                raise ValueError(f"source_sampler_function_input is invalid: {type(source_sampler_function_input)}")
+            if delta_sampler_function_input is None or not isinstance(delta_sampler_function_input, tuple):
+                raise ValueError(f"delta_sampler_function_input is invalid: {type(delta_sampler_function_input)}")
+            if target_sampler_function_input is None or not isinstance(target_sampler_function_input, tuple):
+                raise ValueError(f"target_sampler_function_input is invalid: {type(target_sampler_function_input)}")
             
             _, source_model_wrapper, source_noise, _, _, _, _ = source_sampler_function_input
             _, adapted_model_wrapper, delta_noise, _, _, _, _ = delta_sampler_function_input
