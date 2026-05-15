@@ -3,8 +3,8 @@
 
 Official implementation for our paper:
 
-> **Delta Sampling: Data-Free Knowledge Transfer Across Diffusion Models**  
-> [[Paper]](https://arxiv.org/abs/2512.03056)
+> **Delta Sampling: Data-Free Knowledge Transfer Across Diffusion Models**
+> [[Paper]](https://arxiv.org/abs/2512.03056) · [[Interactive Web Demo]](https://zhidong-gao.github.io/delta-sampling-studio/)
 
 ---
 
@@ -18,13 +18,25 @@ Official implementation for our paper:
 
 ---
 
+## 🎮 Interactive Web Demo
+
+A static frontend lets you try DS in your browser without any local setup:
+
+> **[zhidong-gao.github.io/delta-sampling-studio](https://zhidong-gao.github.io/delta-sampling-studio/)**
+
+You can pick an adapted model + LoRA + ControlNet preset on the left, drag the λ slider, and click **Generate**. The UI is hosted statically; the inference is dispatched to a remote GPU backend through a tunnel. The backend may be temporarily offline — in that case the page falls back to a preview mode.
+
+---
+
 ## 📦 Repository Structure
 
 ```bash
 .
 ├── delta_sampler.py         # Core implementation of Delta Sampling
 ├── template/                # ComfyUI workflow templates for experiments
-├── README.md                # You are here
+├── cnet_images/             # Example control maps
+├── results/                 # Qualitative result figures
+└── README.md                # You are here
 ```
 
 ---
@@ -74,28 +86,16 @@ Then, load the provided workflow from the `template/` directory via the ComfyUI 
 
 Here are a few example configurations that reproduce results from our paper:
 
-<!-- ### 🔄 Cross-Version Style Transfer -->
-
 **Models used in the paper:**
 
 - Base/Target model: [SD-1.5](https://huggingface.co/stable-diffusion-v1-5/stable-diffusion-v1-5), [SD-2.1](https://huggingface.co/stabilityai/stable-diffusion-2-1), [SD-XL](https://huggingface.co/stabilityai/stable-diffusion-2-1), [SD-3](https://huggingface.co/stabilityai/stable-diffusion-2-1), [SD-3.5 Medium](https://huggingface.co/stabilityai/stable-diffusion-2-1), [SD-3.5 Large](https://huggingface.co/stabilityai/stable-diffusion-2-1)
 - Adapted model: [Photon_v1.safetensors](https://civitai.com/models/84728/photon), [revAnimated_v2.safetensors](https://civitai.com/models/7371/rev-animated), [LineArt.safetensors](https://www.liblib.art/modelinfo/d59a0d819d2c436f9efb5f0e4f9a0c0d)
-
 - LoRA: [MoXinV1.safetensors](https://civitai.com/models/12597/moxin), [xrs2.0.safetensors](https://civitai.com/models/18323/xiaorenshu), [animeoutlineV4_16.safetensors](https://civitai.com/models/16014/anime-lineart-manga-like-style)
 - ControlNet: `pose`, `depth`, `canny edge`, `normal`, `human pose`, and `segmentation`
 
-You can download the ControlNet from [here](https://huggingface.co/lllyasviel/ControlNet-v1-1)
+You can download the ControlNet from [here](https://huggingface.co/lllyasviel/ControlNet-v1-1).
 
-After download, move the checkpoints to `ComfyUI/models/checkpoints`, LoRA/LyCORIS to `ComfyUI/models/loras`, ControlNet to `ComfyUI/models/controlnet`
-
-<!-- **Set the generation configuration as follow:**
-- Delta guidance strength: `1.0`
-- Seed: `42`
-- Sampler: `euler`
-- CFG: `5`
-- Steps: `16`
-- Scheduler: `normal`
-- Resolution: `512 x 512` or `512 x 768` -->
+After download, move the checkpoints to `ComfyUI/models/checkpoints`, LoRA/LyCORIS to `ComfyUI/models/loras`, ControlNet to `ComfyUI/models/controlnet`.
 
 ### 🔄 SD-1.5 to SD-2.1
 
@@ -115,7 +115,7 @@ Compared to LoRA/LyCORIS fine-tuning, which usually influences image style and c
 
 Here we show the inverse transfer effect from SD-XL to SD-1.5, you can directly import the workflow from template folder: [LatentDeltaSamplerCNet-SDXL-SD15.json](template/LatentDeltaSamplerCNet-SDXL-SD15.json). Here is the transfer result:
 
-![sd15-sdxl](results/sdxl-sd15.png)
+![sdxl-sd15](results/sdxl-sd15.png)
 
 
 ### 🔄 SD-3 to SD-3.5
@@ -133,25 +133,9 @@ DS can also be used to transfer the style of prompt tuning. To demonstrate this 
 
 ### 🔄 IP-Adapter
 
-DS can also be used to transfer the effect of IP-Adapter. To demonstrate this capability, we adopt a classic demo from official repo of  [IP-Adapter](https://github.com/tencent-ailab/IP-Adapter). The left figure is the target concept. 
+DS can also be used to transfer the effect of IP-Adapter. To demonstrate this capability, we adopt a classic demo from the official repo of [IP-Adapter](https://github.com/tencent-ailab/IP-Adapter). The left figure is the target concept.
 You can directly import the workflow from template folder: [LatentDeltaSamplerIPAdapter.json](template/LatentDeltaSamplerIPAdapter.json).
-![pt](results/ip-adapter.png)
-
-
-
-
-<!-- ### 🎨 Multi-Module Adaptation Transfer
-
-**Use a combination of LoRA and ControlNet on SD-1.5, and transfer to SD-2.1:** -->
-
-<!-- - Adapted modules:
-  - LoRA: [MoXinV1.safetensors](https://civitai.com/models/12597/moxin), [xrs2.0.safetensors](https://civitai.com/models/18323/xiaorenshu), [animeoutlineV4_16.safetensors](https://civitai.com/models/16014/anime-lineart-manga-like-style)
-  - ControlNet: `pose`, `depth`, `canny edge`, `normal`, `human pose`, and `segmentation` -->
-<!-- - ControlNet guidance strength: `1.0`
-
-You can download the ControlNet from [here](https://huggingface.co/lllyasviel/ControlNet-v1-1). After download, move the ControlNet to `ComfyUI/models/controlnet`, LoRA model to `ComfyUI/models/loras`. -->
-
-
+![ip-adapter](results/ip-adapter.png)
 
 
 ### ⚙️ Compatible Samplers
